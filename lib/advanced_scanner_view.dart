@@ -23,10 +23,10 @@ class AdvancedScannerView extends StatelessWidget {
   }
 
   IconData _rssiIcon(int rssi) {
-    if (rssi > -50) return Icons.signal_cellular_4_bar;
-    if (rssi > -70) return Icons.signal_cellular_3_bar;
-    if (rssi > -85) return Icons.signal_cellular_2_bar;
-    return Icons.signal_cellular_1_bar;
+    if (rssi > -50) return Icons.signal_cellular_alt; // strongest
+    if (rssi > -70) return Icons.signal_cellular_alt_rounded; // medium
+    if (rssi > -85) return Icons.network_cell; // weak
+    return Icons.signal_cellular_null; // no signal
   }
 
   String _rssiLabel(int rssi) {

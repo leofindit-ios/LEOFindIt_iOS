@@ -8,7 +8,7 @@
 import Flutter
 import UIKit
 
-@UIApplicationMain
+@main
 @objc class AppDelegate: FlutterAppDelegate {
   private let CHANNEL = "leo_find_it/scanner"
   private var bluetoothManager: BluetoothManager?

@@ -1,17 +1,21 @@
+// lib/distance_page.dart
+
 import 'package:flutter/material.dart';
 import 'models.dart';
 import 'search_page.dart';
 import 'advanced_scanner_view.dart';
 
 class DistancePage extends StatelessWidget {
-  final List<TrackerDevice> devices;
+  final List<TrackerDevice> nearDevices; // <= 15m list
+  final List<TrackerDevice> allTrackedDevices; // <= 50m list
   final bool scanning;
-  final VoidCallback onRescan;
+  final Future<void> Function() onRescan; // async callback
   final DateTime? lastScanTime;
 
   const DistancePage({
     super.key,
-    required this.devices,
+    required this.nearDevices,
+    required this.allTrackedDevices,
     required this.scanning,
     required this.onRescan,
     required this.lastScanTime,
@@ -36,16 +40,16 @@ class DistancePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final track = devices
-        .where((d) => d.isLikelyAirTag || d.isLikelyTile)
-        .toList();
+    final track = nearDevices;
 
     return Column(
       children: [
+        // HEADER AREA
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
           child: Column(
             children: [
+              // Start/Stop Scan
               ElevatedButton.icon(
                 icon: Icon(
                   scanning ? Icons.stop : Icons.play_arrow,
@@ -76,9 +80,14 @@ class DistancePage extends StatelessWidget {
                     ),
                   ),
                 ),
-                onPressed: onRescan,
+                onPressed: () async {
+                  await onRescan();
+                },
               ),
+
               const SizedBox(height: 10),
+
+              // Scan status text
               Text(
                 scanning
                     ? 'Scanning…'
@@ -92,19 +101,20 @@ class DistancePage extends StatelessWidget {
                 ),
               ),
 
-              // advanced_scanner_view.dart
               const SizedBox(height: 12),
+
+              // Show All Devices button
               OutlinedButton.icon(
                 icon: const Icon(
-                  Icons.tune_rounded,
-                  size: 28,
+                  Icons.search,
+                  size: 22,
                   color: Colors.blueAccent,
                 ),
                 label: const Text(
-                  "Advanced Scanner View",
+                  'Show All Devices',
                   style: TextStyle(
                     fontFamily: 'Inter',
-                    fontSize: 19,
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.blueAccent,
                   ),
@@ -113,8 +123,8 @@ class DistancePage extends StatelessWidget {
                   backgroundColor: Colors.grey.shade50,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 30,
-                    vertical: 16,
+                    horizontal: 22,
+                    vertical: 14,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(999),
@@ -136,7 +146,7 @@ class DistancePage extends StatelessWidget {
                           top: Radius.circular(18),
                         ),
                         child: AdvancedScannerView(
-                          devices: devices,
+                          devices: allTrackedDevices, // 50m list
                           scanning: scanning,
                           lastScanTime: lastScanTime,
                         ),
@@ -148,6 +158,8 @@ class DistancePage extends StatelessWidget {
             ],
           ),
         ),
+
+        // MAIN LIST (devices <= 15m)
         Expanded(
           child: track.isEmpty
               ? const Center(
@@ -165,6 +177,7 @@ class DistancePage extends StatelessWidget {
                   itemCount: track.length,
                   itemBuilder: (_, i) {
                     final d = track[i];
+
                     return GestureDetector(
                       onTap: () => Navigator.push(
                         context,
@@ -208,11 +221,12 @@ class DistancePage extends StatelessWidget {
                                     Row(
                                       children: List.generate(
                                         5,
-                                        (i) => Icon(
+                                        (idx) => Icon(
                                           Icons.signal_cellular_alt,
                                           size: 20,
                                           color:
-                                              i < _bars(d.smoothedRssi.round())
+                                              idx <
+                                                  _bars(d.smoothedRssi.round())
                                               ? Colors.green
                                               : Colors.grey.shade300,
                                         ),

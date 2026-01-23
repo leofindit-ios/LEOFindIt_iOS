@@ -100,6 +100,11 @@ final class BluetoothManager: NSObject, CBCentralManagerDelegate {
     // We store manufacturer data (if present) as hex.
     let rawFrame = extractManufacturerHex(advertisementData: advertisementData)
 
+    let isConnectable = (advertisementData[CBAdvertisementDataIsConnectable] as? Bool) ?? false
+    let localName = (advertisementData[CBAdvertisementDataLocalNameKey] as? String) ?? ""
+    let serviceUUIDs = (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]) ?? []
+    let serviceUuidStrings = serviceUUIDs.map { $0.uuidString.uppercased() }
+
     // ---- update state ----
     let prev = states[signature]
     let firstSeen = prev?.firstSeenMs ?? nowMs
@@ -129,12 +134,22 @@ final class BluetoothManager: NSObject, CBCentralManagerDelegate {
       "kind": kind,
       "rssi": rssi,
       "distanceMeters": distanceMeters,
+      "firstSeenMs": Int(firstSeen),
       "lastSeenMs": Int(nowMs),
+      "sightings": sightings,
       "signature": signature,
       "rawFrame": rawFrame,
       "rotatingMacCount": 0,
+      "localName": localName,
+      "isConnectable": isConnectable,
+      "serviceUuids": serviceUuidStrings,
     ]
 
+    if kind == "UNKNOWN" {
+      print(
+        "BLE UNKNOWN name=\(localName) rssi=\(rssi) conn=\(isConnectable) services=\(serviceUuidStrings) mfg=\(rawFrame)"
+      )
+    }
     // Native -> Flutter callback: onDevice (matches BleBridge) :contentReference[oaicite:5]{index=5}
     channel.invokeMethod("onDevice", arguments: payload)
   }
@@ -148,27 +163,33 @@ final class BluetoothManager: NSObject, CBCentralManagerDelegate {
   }
 
   private func classifyKind(advertisementData: [String: Any]) -> String {
-    // Manufacturer Data starts with Company ID (little-endian, 2 bytes)
-    if let mfg = advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data,
-      mfg.count >= 2
+    let localName =
+      (advertisementData[CBAdvertisementDataLocalNameKey] as? String)?.lowercased() ?? ""
+    // 1) Name-based hint (Tiles often broadcast a name)
+    if localName.contains("tile") {
+      return "TILE"
+    }
+    if localName.contains("smarttag") || localName.contains("samsung") {
+      return "SAMSUNG"
+    }
+
+    // 2) Manufacturer data company id (best when present)
+    if let mfg = advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data, mfg.count >= 2
     {
       let b0 = UInt16(mfg[mfg.startIndex])
       let b1 = UInt16(mfg[mfg.startIndex + 1])
       let companyId = b0 | (b1 << 8)
-
-      // Match Android IDs:
-      // Apple 0x004C, Samsung 0x0075, Tile 0x0131 :contentReference[oaicite:6]{index=6}
-      if companyId == 0x004C {
-        // Could be Apple device or Find My accessory. We'll label as APPLE_DEVICE.
-        return "APPLE_DEVICE"
-      }
       if companyId == 0x0075 { return "SAMSUNG" }
       if companyId == 0x0131 { return "TILE" }
+      // Apple is noisy: AirPods/phones/etc.
+      if companyId == 0x004C { return "APPLE_DEVICE" }
     }
 
-    // Try service UUID heuristic for Find My (FD44 appears in Android scanner) :contentReference[oaicite:7]{index=7}
+    // 3) Service UUID heuristic (sometimes present)
     if let uuids = advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID] {
-      if uuids.contains(where: { $0.uuidString.uppercased().contains("FD44") }) {
+      let s = uuids.map { $0.uuidString.uppercased() }
+      // Find My is not consistently visible on iOS, but keep the heuristic
+      if s.contains(where: { $0.contains("FD44") }) {
         return "AIRTAG"
       }
     }

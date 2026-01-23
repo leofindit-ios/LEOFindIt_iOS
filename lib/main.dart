@@ -1,6 +1,5 @@
-// ---------------------------
-// leofindit_ios/lib/main.dart
-// ---------------------------
+// lib/main.dart
+
 import 'dart:async';
 import 'dart:math';
 
@@ -116,18 +115,48 @@ class _LeoTrackerAppState extends State<LeoTrackerApp>
 
   @override
   Widget build(BuildContext context) {
-    final trackedDevices = devices
-        .where((d) => d.isLikelyAirTag || d.isLikelyTile)
+    const double maxDistanceM = 50.0; // Advanced view
+    const double nearDistanceM = 15.0; // Main list
+
+    // 1) Build an “advanced list” (<= 50m)
+    // Keep UNKNOWN + APPLE_DEVICE so you don’t miss AirTag-ish packets on iOS.
+    final advancedDevices =
+        devices
+            .where((d) => d.distanceMeters <= maxDistanceM)
+            .where(
+              (d) =>
+                  d.isLikelyTile ||
+                  d.isLikelySamsung ||
+                  d.isLikelyAirTag ||
+                  d.kind == "APPLE_DEVICE" ||
+                  d.kind == "UNKNOWN",
+            )
+            .toList()
+          ..sort((a, b) => a.distanceMeters.compareTo(b.distanceMeters));
+
+    // 2) Near list for the main Scan page (<= 15m)
+    // Here we can be stricter so the main page doesn’t look spammy.
+    final nearDevices = advancedDevices
+        .where((d) => d.distanceMeters <= nearDistanceM)
+        .where(
+          (d) =>
+              d.isLikelyTile ||
+              d.isLikelySamsung ||
+              d.isLikelyAirTag ||
+              d.kind == "APPLE_DEVICE",
+        )
         .toList();
 
+    // 3) Pages (ONLY declare this once)
     final pages = [
       DistancePage(
-        devices: trackedDevices,
+        nearDevices: nearDevices,
+        allTrackedDevices: advancedDevices, // 50m list in Show All Devices button
         scanning: scanning,
         onRescan: toggleScan,
         lastScanTime: lastScanTime,
       ),
-      IdentificationPage(devices: trackedDevices),
+      IdentificationPage(devices: advancedDevices),
     ];
 
     return MaterialApp(
@@ -139,10 +168,6 @@ class _LeoTrackerAppState extends State<LeoTrackerApp>
             centerTitle: true,
             title: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(999),
-              ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -150,8 +175,8 @@ class _LeoTrackerAppState extends State<LeoTrackerApp>
                     borderRadius: BorderRadius.circular(6),
                     child: Image.asset(
                       'assets/leo_splash.png',
-                      height: 20,
-                      width: 20,
+                      height: 40,
+                      width: 40,
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -160,7 +185,7 @@ class _LeoTrackerAppState extends State<LeoTrackerApp>
                     'LEOFindIt',
                     style: TextStyle(
                       fontFamily: 'Inter',
-                      color: Colors.white,
+                      color: Colors.grey,
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
                       letterSpacing: 0.7,
@@ -170,17 +195,20 @@ class _LeoTrackerAppState extends State<LeoTrackerApp>
               ),
             ),
           ),
-          body: pages[pageIndex],
-          bottomNavigationBar: SizedBox(
-            height: 71,
+
+          body: SafeArea(bottom: false, child: pages[pageIndex]),
+          bottomNavigationBar: SafeArea(
+            top: false,
             child: BottomNavigationBar(
               type: BottomNavigationBarType.fixed,
               currentIndex: pageIndex,
+
               selectedItemColor: Colors.blueAccent,
               unselectedItemColor: Colors.grey,
               selectedFontSize: 16,
               unselectedFontSize: 12,
               iconSize: 28,
+
               onTap: (i) => setState(() => pageIndex = i),
               items: const [
                 BottomNavigationBarItem(icon: Icon(Icons.radar), label: 'Scan'),
