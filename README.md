@@ -50,12 +50,12 @@ Tools - Xcode, VS Code, GitHub
 
 ## Installation
 
-git clone https://github.com/yourusername/LEOFindIt_iOS.git
-cd LEOFindIt_iOS
-flutter clean
-flutter pub get
-cd ios
-pod install
+git clone https://github.com/yourusername/LEOFindIt_iOS.git<br>
+cd LEOFindIt_iOS<br>
+flutter clean<br>
+flutter pub get<br>
+cd ios<br>
+pod install<br>
 cd ..
 
 Restart Xcode after pod install
