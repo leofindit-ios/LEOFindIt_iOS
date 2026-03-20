@@ -35,13 +35,18 @@ class BleBridge {
   // Update the scanning state based on the result
   static Future<bool> startScan() async {
     _attachOnce();
-    final ok = await _ch.invokeMethod<bool>("startScan") ?? true;
+    final ok = await _ch.invokeMethod<bool>("startScan") ?? false;
     _isScanning = ok;
     return ok;
   }
 
   // Stop BLE scanning by invoking the native method
   // Update the scanning state accordingly
+  static Future<String> bluetoothState() async {
+    final state = await _ch.invokeMethod<String>("bluetoothState");
+    return state ?? "unknown";
+  }
+
   static Future<void> stopScan() async {
     try {
       await _ch.invokeMethod("stopScan");

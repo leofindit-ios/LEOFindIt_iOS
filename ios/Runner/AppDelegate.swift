@@ -33,11 +33,11 @@ import UIKit
       case "startScan":
         manager.startScan()
         result(true)
-
       case "stopScan":
         manager.stopScan()
         result(true)
-
+      case "bluetoothState":
+        result(manager.bluetoothStateString())
       default:
         result(FlutterMethodNotImplemented)
       }

@@ -46,16 +46,28 @@ final class BluetoothManager: NSObject, CBCentralManagerDelegate {
     self.central = CBCentralManager(delegate: self, queue: nil)
   }
 
-  // Start Bluetooth scanning if the central manager is powered on, otherwise sets a pending start flag to attempt scanning when the state updates
-  func startScan() {
-    let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
+  func bluetoothStateString() -> String {
+    switch central.state {
+    case .unknown: return "unknown"
+    case .resetting: return "resetting"
+    case .unsupported: return "unsupported"
+    case .unauthorized: return "unauthorized"
+    case .poweredOff: return "poweredOff"
+    case .poweredOn: return "poweredOn"
+    @unknown default: return "unknown"
+    }
+  }
 
-    if scanning { return }
+  // Start Bluetooth scanning if the central manager is powered on, otherwise sets a pending start flag to attempt scanning when the state updates
+  @discardableResult
+  func startScan() -> Bool {
+    let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
+    if scanning { return true }
 
     guard central.state == .poweredOn else {
       pendingStart = true
       lastStartRequestMs = nowMs
-      return
+      return false
     }
 
     pendingStart = false
@@ -164,17 +176,12 @@ final class BluetoothManager: NSObject, CBCentralManagerDelegate {
       "localName": localName,
       "isConnectable": isConnectable,
       "serviceUuids": serviceUuidStrings,
+      "uuid": peripheral.identifier.uuidString,
     ]
 
-    // Log the detected device information
-    if kind == "UNKNOWN" || kind == "APPLE_DEVICE" || kind == "TILE" || kind == "SAMSUNG_DEVICE"
-      || kind == "SAMSUNG_SMARTTAG" || kind == "AIRTAG"
-    {
-      print(
-        "BLE kind=\(kind) name=\(localName) rssi=\(rssi) smooth=\(smoothed) conn=\(isConnectable) services=\(serviceUuidStrings) mfg=\(rawFrame)"
-      )
-    }
-
+    print(
+      "BLE kind=\(kind) name=\(localName) rssi=\(rssi) smooth=\(smoothed) conn=\(isConnectable) services=\(serviceUuidStrings) mfg=\(rawFrame)"
+    )
     channel.invokeMethod("onDevice", arguments: payload)
   }
 
@@ -207,21 +214,36 @@ final class BluetoothManager: NSObject, CBCentralManagerDelegate {
     if localName.contains("tile") {
       return "TILE"
     }
-    if localName.contains("smarttag") {
+    if localName.contains("smart tag") || localName.contains("smarttag") {
       return "SAMSUNG_SMARTTAG"
     }
 
     // Check manufacturer data for known company identifiers to classify devices
     if let mfg = advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data, mfg.count >= 2
     {
+      let raw = mfg.map { String(format: "%02x", $0) }.joined()
       let b0 = UInt16(mfg[mfg.startIndex])
       let b1 = UInt16(mfg[mfg.startIndex + 1])
       let companyId = b0 | (b1 << 8)
 
       // Check for known company identifiers to classify devices
-      if companyId == 0x0131 { return "TILE" }
-      if companyId == 0x0075 { return "SAMSUNG_DEVICE" }
-      if companyId == 0x004C { return "APPLE_DEVICE" }
+      if companyId == 0x0131 {
+        return "TILE"
+      }
+      if companyId == 0x0075 {
+        return localName.contains("smart") ? "SAMSUNG_SMARTTAG" : "SAMSUNG_DEVICE"
+      }
+      if companyId == 0x004C {
+        /*
+        if raw.hasPrefix("1EFF4C000215") || raw.hasPrefix("1AFF4C000215") {
+          return "AIRTAG"
+        }
+        */
+        if raw.hasPrefix("1EFF4C001219") {
+          return "AIRTAG"
+        }
+        return "APPLE_DEVICE"
+      }
     }
 
     // Check service UUIDs for known patterns that indicate specific device types

@@ -135,13 +135,29 @@ class _LeoTrackerAppState extends State<LeoTrackerApp>
     // Start the BLE scan and handle the scanning state, including error handling if the scan fails to start, and updating the UI to reflect the current scanning status
     unawaited(() async {
       try {
-        await BleBridge.startScan();
+        final ok = await BleBridge.startScan();
+
+        if (!ok) {
+          if (!mounted || _scanSession != mySession) return;
+
+          await _motionSub?.cancel();
+          _motionSub = null;
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Bluetooth is not ready')),
+          );
+
+          setState(() {
+            scanning = false;
+            lastScanTime = DateTime.now();
+          });
+          _resetScanCountdown();
+          return;
+        }
       } catch (_) {
         if (!mounted || _scanSession != mySession) return;
-
         await _motionSub?.cancel();
         _motionSub = null;
-
         setState(() {
           scanning = false;
           lastScanTime = DateTime.now();
