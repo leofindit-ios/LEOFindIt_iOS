@@ -67,6 +67,9 @@ Open ios/Runner.xcworkspace
 2. Select device or simulator
 3. Press Run
 
+## Privacy Policy
+https://leofindit-ios.github.io/LEOFindIt_iOS/
+
 ## Documentation
 
 [User Testing Documentation.pdf](https://github.com/user-attachments/files/26132139/User.Testing.Documentation.pdf)<br>
