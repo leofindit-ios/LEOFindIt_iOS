@@ -496,11 +496,14 @@ class _LeoTrackerAppState extends State<LeoTrackerApp>
     final tutorialTrackedDevices = _tutorialRunning
         ? <TrackerDevice>[_demoTutorialDevice]
         : trackedDevices;
-
     return ValueListenableBuilder<FiltersState>(
       valueListenable: FiltersModel.notifier,
       builder: (_, filters, __) {
-        final advancedDevices = devices
+        final unmarkedDevices = devices
+            .where((d) => DeviceMarks.getMark(d.signature) == null)
+            .toList();
+
+        final advancedDevices = unmarkedDevices
             .where((d) => d.distanceFeet <= filters.maxAdvancedDistanceFt)
             .where((d) => d.rssi >= filters.minRssi)
             .where(
@@ -543,7 +546,7 @@ class _LeoTrackerAppState extends State<LeoTrackerApp>
                   tutorialDevice: _demoTutorialDevice,
                 ),
                 IdentificationPage(
-                  devices: tutorialTrackedDevices,
+                  devices: _tutorialRunning ? tutorialTrackedDevices : devices,
                   identifyTabsKey: _identifyTabsKey,
                 ),
               ];

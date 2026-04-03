@@ -39,13 +39,12 @@ class IdentificationPage extends StatelessWidget {
         final nonsuspect = <TrackerDevice>[];
 
         for (final d in qualified) {
-          final mark =
-              DeviceMarks.getMark(d.signature) ?? DeviceMark.nonsuspect;
+          final mark = DeviceMarks.getMark(d.signature);
           if (mark == DeviceMark.friendly) {
             friendly.add(d);
           } else if (mark == DeviceMark.suspect) {
             suspect.add(d);
-          } else {
+          } else if (mark == DeviceMark.nonsuspect) {
             nonsuspect.add(d);
           }
         }

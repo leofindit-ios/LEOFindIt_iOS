@@ -77,18 +77,6 @@ class _SearchPageState extends State<SearchPage>
     super.initState();
     live = widget.device;
 
-    if (DeviceMarks.getMark(widget.device.signature) == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        if (DeviceMarks.getMark(widget.device.signature) == null) {
-          DeviceMarks.setMark(
-            widget.device.signature,
-            DeviceMark.nonsuspect,
-          ); // Default state
-        }
-      });
-    }
-
     _pulseCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
@@ -355,7 +343,7 @@ class _SearchPageState extends State<SearchPage>
     final d = live ?? widget.device;
     final band = _bandFromRssi(d.smoothedRssi);
     final color = _bandColor(band);
-    final mark = DeviceMarks.getMark(d.signature) ?? DeviceMark.nonsuspect;
+    final DeviceMark? mark = DeviceMarks.getMark(d.signature);
 
     return Scaffold(
       appBar: AppBar(
@@ -487,9 +475,8 @@ class _SearchPageState extends State<SearchPage>
 
 // Custom widget for displaying a button to mark a device as Friendly, Unknown, or Suspect
 class _MarkTabs extends StatelessWidget {
-  final DeviceMark selected;
+  final DeviceMark? selected;
   final ValueChanged<DeviceMark> onSelect;
-
   const _MarkTabs({required this.selected, required this.onSelect});
 
   static const Color _friendly = Color(0xFF2E7D32);
@@ -514,7 +501,8 @@ class _MarkTabs extends StatelessWidget {
             child: _Pill(
               label: 'Suspect',
               color: _suspect,
-              selected: selected == DeviceMark.suspect,
+              selected:
+                  selected == DeviceMark.suspect,
               onTap: () => onSelect(DeviceMark.suspect),
             ),
           ),
