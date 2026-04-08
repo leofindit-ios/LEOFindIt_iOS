@@ -9,7 +9,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>LEO Find It</string>
+	<string>LeoFindIt</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -31,13 +31,13 @@
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>This app uses Bluetooth to locate and communicate with lost devices.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>Bluetooth access allows LEOFindIt to send a sound and retrieve a device’s location.</string>
+	<string>Bluetooth access allows LeoFindIt to send a sound and retrieve a device’s location.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Required for secure BLE discovery.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Location info improves nearby tracker detection accuracy.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>LEOFindIt needs location access to detect nearby Bluetooth trackers.</string>
+	<string>LeoFindIt needs location access to detect nearby Bluetooth trackers.</string>
 	<key>Privacy - Accessory Tracking Usage Description</key>
 	<string>This helps comply with Apple&apos;s accessory tracking rules.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

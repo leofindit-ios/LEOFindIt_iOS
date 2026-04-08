@@ -5,7 +5,7 @@ import 'models.dart';
 import 'device_marks.dart';
 import 'search_page.dart';
 
-// displays a list of detected tracker devices categorized as Friendly, Unknown, or Suspect
+// displays a list of detected tracker devices categorized as Friendly, Nonsuspect, or Suspect
 class IdentificationPage extends StatelessWidget {
   final List<TrackerDevice> devices;
   final GlobalKey? identifyTabsKey;
@@ -131,10 +131,10 @@ class IdentificationPage extends StatelessWidget {
 
   String _ageLabel(int lastSeenMs) {
     final now = DateTime.now().millisecondsSinceEpoch;
-    final s = ((now - lastSeenMs) / 1000).clamp(0, 999999).toDouble();
-    if (s < 60) return "${s.toStringAsFixed(1)}s ago";
-    final m = (s / 60).floor();
-    final rs = (s - m * 60).floor();
+    final s = ((now - lastSeenMs) / 1000).clamp(0, 999999).toInt();
+    if (s < 60) return "${s}s ago";
+    final m = (s ~/ 60);
+    final rs = (s % 60);
     return "${m}m ${rs}s ago";
   }
 
@@ -170,14 +170,22 @@ class IdentificationPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Distance: ${d.distanceFeet.toStringAsFixed(1)} ft',
+                      'UUID: ${DeviceMarks.getMark(d.signature) == DeviceMark.suspect ? d.displayUuid : '...${d.shortUuid}'}',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      'RSSI: ${d.rssi} dBm • Seen ${_ageLabel(d.lastSeenMs)}',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         color: Colors.grey.shade700,
                       ),
                     ),
                     Text(
-                      'RSSI: ${d.rssi} dBm • Seen ${_ageLabel(d.lastSeenMs)}',
+                      'Distance: ${d.distanceFeet.toStringAsFixed(1)} ft',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         color: Colors.grey.shade700,
@@ -220,8 +228,8 @@ class IdentificationPage extends StatelessWidget {
 
 class _MarkTabs extends StatelessWidget {
   const _MarkTabs();
-  static const _friendly = Color(0xFF2E7D32);
   static const _suspect = Color(0xFFD9534F);
+  static const _friendly = Color(0xFF2E7D32);
   static const _nonsuspect = Color(0xFF1500FF);
 
   @override

@@ -1,8 +1,8 @@
-# LEOFindIt_iOS -- Detect Hidden BTLE Tracking Devices
+# LeoFindIt_iOS -- Detect Hidden BTLE Tracking Devices
 
 ## Overview
 
-LEOFindIt_iOS is a hybrid mobile application developed using Flutter and native iOS technologies to detect and classify Bluetooth Low Energy (BLE) tracking devices such as:
+LeoFindIt_iOS is a hybrid mobile application developed using Flutter and native iOS technologies to detect and classify Bluetooth Low Energy (BLE) tracking devices such as:
  - Apple AirTags
  - Samsung SmartTags
  - Tile trackers

@@ -42,11 +42,16 @@ class TrackerDevice {
 
   bool get isLikelyAirTag => kind == 'AIRTAG';
   bool get isLikelyTile => kind == 'TILE';
+
+  // Note: We keep these extra checks because the iOS Swift scanner
+  // outputs these specific strings, unlike the Android Kotlin scanner.
   bool get isLikelySamsung =>
       kind == 'SAMSUNG' ||
       kind == 'SAMSUNG_DEVICE' ||
       kind == 'SAMSUNG_SMARTTAG';
 
+  /*
+  // Fallback heuristic for Apple devices due to CoreBluetooth masking
   bool get isPossibleAirTag {
     final n = localName.toLowerCase().trim();
     if (isLikelyAirTag) return true;
@@ -76,25 +81,31 @@ class TrackerDevice {
         hasAppleLikeSignature &&
         notObviousAppleHost;
   }
-
+  */
+  
   bool get isFound => distanceFeet <= 0.10;
 
   String get displayName {
+    // Keep custom name lookup for iOS
     final customName = DeviceMarks.getName(signature);
     if (customName != null && customName.isNotEmpty) return customName;
 
-    if (isLikelyAirTag) return 'APPLE TAG';
-    if (isLikelyTile) return 'TILE TAG';
-    if (isLikelySamsung) return 'SAMSUNG TAG';
-    if (kind.contains('APPLE') || isPossibleAirTag) return 'FINDMY TAG';
-    return 'UNKNOWN TAG';
+    // Matches Android's exact naming convention
+    if (isLikelyAirTag) return 'Apple AirTag';
+    if (isLikelyTile) return 'Life360 Tile';
+    if (isLikelySamsung) return 'Samsung SmartTag';
+    if (kind.contains('APPLE')) return 'Apple Find My'; // || isPossibleAirTag) return 'Apple Find My';
+
+    return 'Undesignated Tracker';
   }
 
-  String get displayUuid {
-    if (signature.startsWith('IOS_')) {
-      return signature.replaceFirst('IOS_', '');
+  String get displayUuid => signature;
+
+  String get shortUuid {
+    if (displayUuid.length >= 4) {
+      return displayUuid.substring(displayUuid.length - 4);
     }
-    return signature;
+    return displayUuid;
   }
 
   String get displayMac => displayUuid;
@@ -123,7 +134,7 @@ class TrackerDevice {
     return TrackerDevice(
       signature: (m['signature'] as String?) ?? '',
       id: (m['id'] as String?) ?? '',
-      kind: (m['kind'] as String?) ?? 'UNKNOWN',
+      kind: (m['kind'] as String?) ?? 'UNDESIGNATED',
       rssi: (m['rssi'] as int?) ?? -100,
       distanceFeet: ((m['distanceFeet'] as num?) ?? 0).toDouble(),
       firstSeenMs: (m['firstSeenMs'] as int?) ?? (m['lastSeenMs'] as int?) ?? 0,

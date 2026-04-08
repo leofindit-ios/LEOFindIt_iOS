@@ -21,19 +21,18 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await DeviceMarks.init();
   await ReportsStore.init();
-  runApp(const LeoTrackerApp());
+  runApp(const LeoFindIt());
 }
 
-// The LeoTrackerApp widget uses a StatefulWidget to maintain and update the state as the user interacts with the app and as new devices are detected through BLE scanning
-class LeoTrackerApp extends StatefulWidget {
-  const LeoTrackerApp({super.key});
+// The LeoFindIt widget uses a StatefulWidget to maintain and update the state as the user interacts with the app and as new devices are detected through BLE scanning
+class LeoFindIt extends StatefulWidget {
+  const LeoFindIt({super.key});
   @override
-  State<LeoTrackerApp> createState() => _LeoTrackerAppState();
+  State<LeoFindIt> createState() => _LeoFindItState();
 }
 
 // List of detected devices, scanning status, and user interactions such as starting/stopping scans and navigating between pages
-class _LeoTrackerAppState extends State<LeoTrackerApp>
-    with SingleTickerProviderStateMixin {
+class _LeoFindItState extends State<LeoFindIt> with TickerProviderStateMixin {
   final Map<String, TrackerDevice> _devicesBySig = {};
 
   bool scanning = false;
@@ -53,6 +52,7 @@ class _LeoTrackerAppState extends State<LeoTrackerApp>
 
   late AnimationController _fadeCtrl;
   late Animation<double> _fadeAnim;
+  late AnimationController _blinkCtrl;
 
   // 10-Second Sorting Validity State
   List<String> _displayOrder = [];
@@ -126,7 +126,6 @@ class _LeoTrackerAppState extends State<LeoTrackerApp>
   void initState() {
     super.initState();
 
-    // Show Mission Prompt on startup
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showMissionPrompt();
     });
@@ -137,6 +136,11 @@ class _LeoTrackerAppState extends State<LeoTrackerApp>
     );
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
     _fadeCtrl.forward();
+
+    _blinkCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
 
     _bleSub = BleBridge.detections.listen((device) {
       setState(() {
@@ -162,39 +166,65 @@ class _LeoTrackerAppState extends State<LeoTrackerApp>
           'Select Mission Profile',
           style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.bold),
         ),
-        content: const Text(
-          'Are you searching a targeted package/vehicle or checking a general area for stalking?',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 12,
+                ),
+              ),
+              onPressed: () {
+                FiltersModel.apply(
+                  maxMainDistanceFt: 10.0,
+                  maxAdvancedDistanceFt: 40.0,
+                  minRssi: -100,
+                  filterByRssi: true,
+                  rssiThreshold: -70,
+                  sortMode: SortMode.recent,
+                );
+                Navigator.pop(ctx);
+              },
+              child: const Text(
+                'Package Mission\nI’m determining if there is a tag inside of a sealed package.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 12,
+                ),
+              ),
+              onPressed: () {
+                FiltersModel.apply(
+                  maxMainDistanceFt: 50.0,
+                  maxAdvancedDistanceFt: 200.0,
+                  minRssi: -100,
+                  filterByRssi: true,
+                  rssiThreshold: -90,
+                  sortMode: SortMode.recent,
+                );
+                Navigator.pop(ctx);
+              },
+              child: const Text(
+                'Hunting Mission\nI\'m hunting for a possible tag in a known area such as a vehicle or backpack.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              FiltersModel.apply(
-                maxMainDistanceFt: 50.0,
-                maxAdvancedDistanceFt: 200.0,
-                minRssi: -100,
-                filterByRssi: true,
-                rssiThreshold: -90,
-                sortMode: SortMode.recent,
-              );
-              Navigator.pop(ctx);
-            },
-            child: const Text('Passive (Stalking)'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              FiltersModel.apply(
-                maxMainDistanceFt: 10.0,
-                maxAdvancedDistanceFt: 40.0,
-                minRssi: -100,
-                filterByRssi: true,
-                rssiThreshold: -70,
-                sortMode: SortMode.recent,
-              );
-              Navigator.pop(ctx);
-            },
-            child: const Text('Active (Package)'),
-          ),
-        ],
       ),
     );
   }
@@ -481,6 +511,7 @@ class _LeoTrackerAppState extends State<LeoTrackerApp>
   @override
   void dispose() {
     _fadeCtrl.dispose();
+    _blinkCtrl.dispose();
     _motionSub?.cancel();
     _bleSub?.cancel();
     _scanTimer?.cancel();
@@ -491,11 +522,18 @@ class _LeoTrackerAppState extends State<LeoTrackerApp>
   @override
   Widget build(BuildContext context) {
     final trackedDevices = devices
-        .where((d) => d.isLikelyAirTag || d.isLikelyTile || d.isLikelySamsung)
-        .toList();
+      .where((d) => 
+        d.isLikelyAirTag || 
+        d.isLikelyTile || 
+        d.isLikelySamsung ||
+        // d.isPossibleAirTag || 
+        d.kind.contains('APPLE'))
+      .toList();
+
     final tutorialTrackedDevices = _tutorialRunning
         ? <TrackerDevice>[_demoTutorialDevice]
         : trackedDevices;
+
     return ValueListenableBuilder<FiltersState>(
       valueListenable: FiltersModel.notifier,
       builder: (_, filters, __) {
@@ -589,7 +627,7 @@ class _LeoTrackerAppState extends State<LeoTrackerApp>
                           ),
                           const SizedBox(width: 8),
                           const Text(
-                            'LEOFindIt',
+                            'LeoFindIt',
                             style: TextStyle(
                               fontFamily: 'Inter',
                               color: Colors.white,
@@ -598,6 +636,16 @@ class _LeoTrackerAppState extends State<LeoTrackerApp>
                               letterSpacing: 0.7,
                             ),
                           ),
+                          const SizedBox(width: 6),
+                          if (scanning)
+                            FadeTransition(
+                              opacity: _blinkCtrl,
+                              child: const Icon(
+                                Icons.circle,
+                                color: Colors.redAccent,
+                                size: 10,
+                              ),
+                            ),
                         ],
                       ),
                     ),

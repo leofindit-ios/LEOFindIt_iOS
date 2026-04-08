@@ -1,9 +1,7 @@
-// lib/search_page.dart
-
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'device_marks.dart';
 import 'models.dart';
@@ -11,8 +9,6 @@ import 'ble_bridge.dart';
 import 'reports_store.dart';
 import 'app_tutorial.dart';
 
-// a detailed view of a specific detected tracker device, allowing users to see real-time distance estimates, signal strength, and other relevant information
-// Also includes marking the device as Friendly, Unknown, or Suspect
 class SearchPage extends StatefulWidget {
   final TrackerDevice device;
   final bool tutorialMode;
@@ -25,25 +21,15 @@ class SearchPage extends StatefulWidget {
   State<SearchPage> createState() => _SearchPageState();
 }
 
-// Enum representing different proximity bands based on RSSI values
 enum ProximityBand { immediate, nearby, close, far, unknown }
 
-// _SearchPageState class manages real-time updates of the detected device's information, handling user interactions for marking devices, and providing visual feedback based on the device's proximity and signal strength
-class _SearchPageState extends State<SearchPage>
-    with SingleTickerProviderStateMixin {
+class _SearchPageState extends State<SearchPage> {
   TrackerDevice? live;
   StreamSubscription<TrackerDevice>? sub;
 
   Timer? _uiTimer;
   TrackerDevice? _pending;
   static const int _uiFrameMs = 60;
-
-  static const double _foundThresholdFt = 0.33;
-  static const double _foundReleaseFt = 1.15;
-  static const int _foundHoldMs = 1800;
-
-  int? _foundAtMs;
-  bool _hapticFired = false;
 
   double? _displayDistanceFt;
 
@@ -59,9 +45,6 @@ class _SearchPageState extends State<SearchPage>
   String direction = 'Hold steady';
   IconData arrow = Icons.navigation;
 
-  late AnimationController _pulseCtrl;
-  late Animation<double> _pulseAnim;
-
   Timer? _ageTick;
   int _nowMs = DateTime.now().millisecondsSinceEpoch;
 
@@ -76,15 +59,6 @@ class _SearchPageState extends State<SearchPage>
   void initState() {
     super.initState();
     live = widget.device;
-
-    _pulseCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    );
-    _pulseAnim = Tween<double>(
-      begin: 1.0,
-      end: 1.06,
-    ).chain(CurveTween(curve: Curves.easeInOut)).animate(_pulseCtrl);
 
     if (!widget.tutorialMode) {
       sub = BleBridge.detections.listen((d) {
@@ -160,7 +134,7 @@ class _SearchPageState extends State<SearchPage>
         id: 'search_categories',
         title: 'Tracker categories',
         body:
-            'You can put a tracker in three categories: Friendly, Nonsuspect, and Suspect. If you use Suspect, it will create a report.',
+            'You can put a tracker in three categories: Friendly, Undesignated, and Suspect. If you use Suspect, it will create a report.',
         align: ContentAlign.top,
       ),
     ]);
@@ -168,14 +142,13 @@ class _SearchPageState extends State<SearchPage>
   }
 
   String _ageLabel(int lastSeenMs) {
-    final s = ((_nowMs - lastSeenMs) / 1000).clamp(0, 999999).toDouble();
-    if (s < 60) return "${s.toStringAsFixed(1)}s ago";
-    final m = (s / 60).floor();
-    final rs = (s - m * 60).floor();
+    final s = ((_nowMs - lastSeenMs) / 1000).clamp(0, 999999).toInt();
+    if (s < 60) return "${s}s ago";
+    final m = (s ~/ 60);
+    final rs = (s % 60);
     return "${m}m ${rs}s ago";
   }
 
-  // Helper function to determine the proximity band based on the RSSI value of the detected device
   ProximityBand _bandFromRssi(double rssi) {
     if (rssi >= -55) return ProximityBand.immediate;
     if (rssi >= -65) return ProximityBand.nearby;
@@ -184,7 +157,6 @@ class _SearchPageState extends State<SearchPage>
     return ProximityBand.unknown;
   }
 
-  // Helper widget to determine the appropriate color to display based on the proximity band of the detected device
   Color _bandColor(ProximityBand band) {
     switch (band) {
       case ProximityBand.immediate:
@@ -200,7 +172,6 @@ class _SearchPageState extends State<SearchPage>
     }
   }
 
-  // Helper widget to determine the appropriate label to display based on the proximity band of the detected device
   String _bandLabel(ProximityBand band) {
     switch (band) {
       case ProximityBand.immediate:
@@ -216,7 +187,6 @@ class _SearchPageState extends State<SearchPage>
     }
   }
 
-  // Helper function handles the logic for determining whether the device is considered found, updating the display distance, and providing feedback about whether the user is getting closer or moving away from the device
   void _updateState(TrackerDevice d) {
     final now = DateTime.now().millisecondsSinceEpoch;
     final rawDist = d.distanceFeet;
@@ -244,11 +214,11 @@ class _SearchPageState extends State<SearchPage>
 
     if (_rssiVelocity > 0) {
       direction = 'Getting closer';
-      arrow = Icons.arrow_circle_up_rounded;
+      arrow = Icons.arrow_upward;
       _lastDirChangeMs = now;
     } else {
       direction = 'Moving away';
-      arrow = Icons.arrow_circle_down_rounded;
+      arrow = Icons.arrow_downward;
       _lastDirChangeMs = now;
     }
   }
@@ -263,62 +233,126 @@ class _SearchPageState extends State<SearchPage>
 
   void _submitReport(TrackerDevice d) {
     final ctrl = TextEditingController();
-    bool isSubmitting = false;
+    bool isSubmittingWeb = false;
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Submit Case Report'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'UUID: ${d.displayUuid}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Text('Found: ${_timeFound?.toString().split('.')[0] ?? ""}'),
-              const SizedBox(height: 12),
-              TextField(
-                controller: ctrl,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  hintText: 'Describe circumstances (No PII)',
-                  border: OutlineInputBorder(),
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Suspect Tag Report'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'I opt in to SMS with LeoFindIt students only regarding the matter in my feedback. I can send STOP anytime to opt out. Web submissions remain anonymous.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 12),
+                Text(
+                  'Classified Suspect: ${DateTime.now().toString().split('.')[0]}',
+                  style: const TextStyle(fontSize: 13),
+                ),
+                Text(
+                  'UUID: ...${d.shortUuid}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'First Scanned: ${DateTime.fromMillisecondsSinceEpoch(d.firstSeenMs).toString().split('.')[0]}',
+                  style: const TextStyle(fontSize: 13),
+                ),
+                Text(
+                  'Last Scanned: ${DateTime.fromMillisecondsSinceEpoch(d.lastSeenMs).toString().split('.')[0]}',
+                  style: const TextStyle(fontSize: 13),
+                ),
+                Text(
+                  'Marked Found: ${_timeFound?.toString().split('.')[0] ?? "N/A"}',
+                  style: const TextStyle(fontSize: 13),
+                ),
+                Text(
+                  'Last Distance: ${d.distanceFeet.toStringAsFixed(1)} ft',
+                  style: const TextStyle(fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Suggest: Screen shot this report, photograph the tag where found, and zoom in to photograph the tag serial number.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blueAccent,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Please include a sentence stating the crime and resolution and any app feedback below:',
+                  style: TextStyle(fontSize: 12),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: ctrl,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    hintText: 'Crime, resolution, feedback...',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
           ),
+          actionsAlignment: MainAxisAlignment.spaceEvenly,
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: const Text('Cancel'),
             ),
-            ElevatedButton(
-              onPressed: isSubmitting
+            TextButton(
+              onPressed: isSubmittingWeb
                   ? null
                   : () async {
-                      setState(() => isSubmitting = true);
+                      setDialogState(() => isSubmittingWeb = true);
                       final payload =
-                          "UUID: ${d.displayUuid}\nFound: ${_timeFound?.toString().split('.')[0]}\n\n${ctrl.text}";
+                          "LeoFindIt Suspect Report:\nUUID: ...${d.shortUuid}\nFirst Scanned: ${DateTime.fromMillisecondsSinceEpoch(d.firstSeenMs)}\nLast Scanned: ${DateTime.fromMillisecondsSinceEpoch(d.lastSeenMs)}\nFound: ${_timeFound}\nLast Distance: ${d.distanceFeet.toStringAsFixed(1)} ft\n\nNotes: ${ctrl.text}";
                       await ReportsStore.sendAnonymousFeedback(payload);
                       if (mounted) {
                         Navigator.pop(ctx);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Report securely submitted.'),
+                            content: Text('Report securely submitted via Web.'),
                           ),
                         );
                       }
                     },
-              child: isSubmitting
+              child: isSubmittingWeb
                   ? const SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Send Report'),
+                  : const Text('Send Web'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final body =
+                    "LeoFindIt Suspect Report:\nUUID: ...${d.shortUuid}\nFirst Scanned: ${DateTime.fromMillisecondsSinceEpoch(d.firstSeenMs)}\nLast Scanned: ${DateTime.fromMillisecondsSinceEpoch(d.lastSeenMs)}\nFound: ${_timeFound}\nLast Distance: ${d.distanceFeet.toStringAsFixed(1)} ft\n\nNotes: ${ctrl.text}";
+                final uri = Uri.parse("sms:?body=${Uri.encodeComponent(body)}");
+                try {
+                  await launchUrl(uri);
+                } catch (e) {
+                  // Ignore failure if emulator doesn't support SMS
+                }
+                if (mounted) {
+                  Navigator.pop(ctx);
+                }
+              },
+              child: const Text('Send SMS'),
             ),
           ],
         ),
@@ -326,18 +360,14 @@ class _SearchPageState extends State<SearchPage>
     );
   }
 
-  // Helper function to display a dialog for submitting anonymous feedback
   @override
   void dispose() {
     sub?.cancel();
     _uiTimer?.cancel();
     _ageTick?.cancel();
-    _pulseCtrl.dispose();
     super.dispose();
   }
 
-  // Build the UI for the SearchPage,
-  // Also includes buttons for marking the device as Friendly, Unknown, or Suspect
   @override
   Widget build(BuildContext context) {
     final d = live ?? widget.device;
@@ -379,17 +409,26 @@ class _SearchPageState extends State<SearchPage>
                   key: _distanceInfoKey,
                   children: [
                     Text(
-                      '${(_displayDistanceFt ?? d.distanceFeet).toStringAsFixed(2)} ft',
+                      "RSSI: ${d.rssi} dBm",
                       style: TextStyle(
                         fontFamily: 'Inter',
-                        fontSize: 26,
+                        fontSize: 32,
                         fontWeight: FontWeight.w800,
                         color: color,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "RSSI: ${d.rssi} dBm • Seen ${_ageLabel(d.lastSeenMs)}",
+                      'Distance: ${(_displayDistanceFt ?? d.distanceFeet).toStringAsFixed(2)} ft',
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 18,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Seen ${_ageLabel(d.lastSeenMs)}",
                       style: const TextStyle(fontFamily: 'Inter'),
                     ),
                   ],
@@ -417,7 +456,7 @@ class _SearchPageState extends State<SearchPage>
                 ),
                 const SizedBox(height: 18),
                 ElevatedButton.icon(
-                  icon: const Icon(Icons.check_circle),
+                  // icon: const Icon(Icons.check_circle),
                   label: const Text('Mark as Found'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
@@ -436,7 +475,7 @@ class _SearchPageState extends State<SearchPage>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'UUID: ${d.displayUuid}',
+                  'UUID: ...${d.shortUuid}',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 Text('Date/Time: ${_timeFound.toString().split('.')[0]}'),
@@ -455,14 +494,15 @@ class _SearchPageState extends State<SearchPage>
                   selected: mark,
                   onSelect: (m) {
                     setState(() => DeviceMarks.setMark(d.signature, m));
-                    if (m == DeviceMark.suspect && !widget.tutorialMode)
+                    if (m == DeviceMark.suspect && !widget.tutorialMode) {
                       ReportsStore.createFromDevice(d);
+                    }
                   },
                 ),
               ),
               const SizedBox(height: 12),
               Text(
-                'UUID: ${d.displayUuid}',
+                'UUID: ...${d.shortUuid}',
                 style: const TextStyle(fontFamily: 'Inter'),
               ),
             ],
@@ -473,7 +513,6 @@ class _SearchPageState extends State<SearchPage>
   }
 }
 
-// Custom widget for displaying a button to mark a device as Friendly, Unknown, or Suspect
 class _MarkTabs extends StatelessWidget {
   final DeviceMark? selected;
   final ValueChanged<DeviceMark> onSelect;
@@ -483,7 +522,6 @@ class _MarkTabs extends StatelessWidget {
   static const Color _suspect = Color(0xFFD9534F);
   static const Color _nonsuspect = Color(0xFF1500FF);
 
-  // Build the UI for the _MarkButton, displaying an icon and label with styling that changes based on whether the button is selected or not
   @override
   Widget build(BuildContext context) {
     final bg = Colors.grey.shade100;
@@ -501,8 +539,7 @@ class _MarkTabs extends StatelessWidget {
             child: _Pill(
               label: 'Suspect',
               color: _suspect,
-              selected:
-                  selected == DeviceMark.suspect,
+              selected: selected == DeviceMark.suspect,
               onTap: () => onSelect(DeviceMark.suspect),
             ),
           ),

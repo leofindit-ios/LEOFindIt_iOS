@@ -1,11 +1,11 @@
-* Privacy Policy for LEOFindIt
+* Privacy Policy for LeoFindIt
 Effective Date: March 27, 2026
 
 1. Introduction
-This Privacy Policy explains how LEOFindIt ("we," "our," or "the App") handles information. LEOFindIt is designed to be a privacy-first utility for detecting Bluetooth Low Energy (BLE) tracking devices. We believe in complete data minimization: we do not track you, we do not require an account, and we do not collect your personal information.
+This Privacy Policy explains how LeoFindIt ("we," "our," or "the App") handles information. LeoFindIt is designed to be a privacy-first utility for detecting Bluetooth Low Energy (BLE) tracking devices. We believe in complete data minimization: we do not track you, we do not require an account, and we do not collect your personal information.
 
 2. Data Collection and Usage
-LEOFindIt functions entirely on your local device.
+LeoFindIt functions entirely on your local device.
 
  - No Personal Information: We do not collect, transmit, or store your name, email address, phone number, or device identifiers.
 
@@ -17,7 +17,7 @@ LEOFindIt functions entirely on your local device.
 Any device classifications (e.g., marking a signal as "Friendly" or "Suspect"), custom device names, and generated case reports are saved securely and exclusively to your device's local storage. You maintain total control over this data and can delete it at any time by clearing the App's storage or deleting the App.
 
 4. Anonymous Feedback
-LEOFindIt includes an optional feature allowing you to submit plain-text feedback or bug reports to the development team.
+LeoFindIt includes an optional feature allowing you to submit plain-text feedback or bug reports to the development team.
 
  - If you choose to use this feature, the App sends only the text you type, your App version, and a UTC timestamp.
 

@@ -1,5 +1,5 @@
-<!-- Short Copilot instructions tailored for LEOFindIt_iOS -->
-# LEOFindIt_iOS — Copilot Instructions
+<!-- Short Copilot instructions tailored for LeoFindIt_iOS -->
+# LeoFindIt_iOS — Copilot Instructions
 
 Purpose: quickly orient AI coding agents to the app structure, native BLE contract, developer workflows, and project-specific conventions.
 
@@ -34,7 +34,7 @@ Purpose: quickly orient AI coding agents to the app structure, native BLE contra
 
 6) Conventions & gotchas specific to this repo
 - Do not assume MAC addresses on iOS — rely on `signature` field (constructed in iOS code). See `BluetoothManager.swift` where `signature` uses `peripheral.identifier.uuidString`.
-- Keep classification changes in `classifyKind(...)` — tests and UI expect `kind` values like `TILE`, `AIRTAG`, `SAMSUNG_SMARTTAG`, `APPLE_DEVICE`, `UNKNOWN`.
+- Keep classification changes in `classifyKind(...)` — tests and UI expect `kind` values like `TILE`, `AIRTAG`, `SAMSUNG_SMARTTAG`, `APPLE_DEVICE`, `UNDESIGNATED`.
 - Avoid changing the `onDevice` payload keys; the Dart models parse these directly (`models.dart`).
 
 7) Where to change things (quick pointers)

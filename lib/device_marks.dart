@@ -6,7 +6,6 @@ import 'package:path_provider/path_provider.dart';
 // Enum representing the mark/status of a device
 enum DeviceMark { suspect, friendly, nonsuspect }
 
-/*
 class DeviceMetadata {
   final DeviceMark mark;
   final String? customName;
@@ -26,11 +25,10 @@ class DeviceMetadata {
     json['customName'] as String?,
   );
 }
-*/
 
 // Manage the marks/statuses of devices, allowing retrieval, setting, and clearing of marks
 class DeviceMarks {
-  static final Map<String, DeviceMark> _marks = {};
+  static final Map<String, DeviceMetadata> _marks = {};
   static final ValueNotifier<int> version = ValueNotifier<int>(0);
 
   // Load saved data on app start
@@ -41,10 +39,7 @@ class DeviceMarks {
         final jsonStr = await file.readAsString();
         final Map<String, dynamic> decoded = jsonDecode(jsonStr);
         decoded.forEach((key, value) {
-          _marks[key] = DeviceMark.values.firstWhere(
-            (e) => e.name == value,
-            orElse: () => DeviceMark.nonsuspect,
-          );
+          _marks[key] = DeviceMetadata.fromJson(value);
         });
         version.value++;
       }
@@ -61,17 +56,29 @@ class DeviceMarks {
   static Future<void> _save() async {
     try {
       final file = await _file();
-      final jsonMap = _marks.map((key, value) => MapEntry(key, value.name));
+      final jsonMap = _marks.map((key, value) => MapEntry(key, value.toJson()));
       await file.writeAsString(jsonEncode(jsonMap));
     } catch (e) {
       debugPrint("Error saving device marks: $e");
     }
   }
 
-  static DeviceMark? getMark(String signature) => _marks[signature];
+  static DeviceMark? getMark(String signature) => _marks[signature]?.mark;
+  static String? getName(String signature) => _marks[signature]?.customName;
 
   static void setMark(String signature, DeviceMark mark) {
-    _marks[signature] = mark;
+    final existingName = _marks[signature]?.customName;
+    _marks[signature] = DeviceMetadata(mark, existingName);
+    version.value++;
+    _save();
+  }
+
+  static void setName(String signature, String name) {
+    final existingMark = _marks[signature]?.mark ?? DeviceMark.nonsuspect;
+    _marks[signature] = DeviceMetadata(
+      existingMark,
+      name.trim().isEmpty ? null : name.trim(),
+    );
     version.value++;
     _save();
   }
@@ -80,9 +87,5 @@ class DeviceMarks {
     _marks.remove(signature);
     version.value++;
     _save();
-  }
-
-  static String? getName(String signature) {
-    return null;
   }
 }

@@ -1,4 +1,3 @@
-//For the hamburger menu feature
 import 'package:flutter/material.dart';
 import 'quick_start_page.dart';
 import 'advanced_search_help_page.dart';
@@ -22,72 +21,95 @@ class AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Drawer(
       child: SafeArea(
-        child: ListView(
+        child: Column(
           children: [
-            const DrawerHeader(
-              child: Text(
-                'LEOFindIt',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            Expanded(
+              child: ListView(
+                children: [
+                  const DrawerHeader(
+                    child: Text(
+                      'LeoFindIt',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 18, 16, 10),
+                    child: Text(
+                      "Help & Guidance",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.play_circle),
+                    title: const Text("Quick Start"),
+                    onTap: () => _open(context, const QuickStartPage()),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.help_outline),
+                    title: const Text("Advanced Search"),
+                    onTap: () => _open(context, const AdvancedSearchHelpPage()),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.gavel_outlined),
+                    title: const Text("Warrant Info"),
+                    onTap: () => _open(context, const WarrantInfoPage()),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.lightbulb_outline),
+                    title: const Text("Tips"),
+                    onTap: () => _open(context, const TipsPage()),
+                  ),
+                  const Divider(),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 18, 16, 10),
+                    child: Text(
+                      "Tools",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  ListTile(
+                    key: filtersTileKey,
+                    leading: const Icon(Icons.tune),
+                    title: const Text("Filters"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const FiltersPage()),
+                      );
+                    },
+                  ),
+                  ListTile(
+                    key: reportsTileKey,
+                    leading: const Icon(Icons.description_outlined),
+                    title: const Text("Reports"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ReportsPage()),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
             const Padding(
-              padding: EdgeInsets.fromLTRB(16, 18, 16, 10),
+              padding: EdgeInsets.all(16.0),
               child: Text(
-                "Help & Guidance",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                'Version 1.1.0+1\nNo new updates available',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey, fontSize: 12),
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.play_circle),
-              title: const Text("Quick Start"),
-              onTap: () => _open(context, const QuickStartPage()),
-            ),
-            ListTile(
-              leading: const Icon(Icons.help_outline),
-              title: const Text("Advanced Search"),
-              onTap: () => _open(context, const AdvancedSearchHelpPage()),
-            ),
-            ListTile(
-              leading: const Icon(Icons.gavel_outlined),
-              title: const Text("Warrant Info"),
-              onTap: () => _open(context, const WarrantInfoPage()),
-            ),
-            ListTile(
-              leading: const Icon(Icons.lightbulb_outline),
-              title: const Text("Tips"),
-              onTap: () => _open(context, const TipsPage()),
-            ),
-            const Divider(),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 18, 16, 10),
-              child: Text(
-                "Tools",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-            ),
-            ListTile(
-              key: filtersTileKey,
-              leading: const Icon(Icons.tune),
-              title: const Text("Filters"),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const FiltersPage()),
-                );
-              },
-            ),
-            ListTile(
-              key: reportsTileKey,
-              leading: const Icon(Icons.description_outlined),
-              title: const Text("Reports"),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ReportsPage()),
-                );
-              },
             ),
           ],
         ),

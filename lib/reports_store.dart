@@ -178,7 +178,7 @@ class ReportsStore {
 
   static Future<Directory> _exportsDir() async {
     final dir = await getApplicationDocumentsDirectory();
-    final exportDir = Directory("${dir.path}/LEOFindItExports");
+    final exportDir = Directory("${dir.path}/LeoFindItExports");
     if (!await exportDir.exists()) {
       await exportDir.create(recursive: true);
     }
@@ -261,7 +261,7 @@ class ReportsStore {
     final notesBlock = notes.isEmpty ? "None." : notes;
 
     return """
-LEO Find It Case Report
+LeoFindIt Case Report
 -----------------------
 
 Report ID: ${r.reportId}

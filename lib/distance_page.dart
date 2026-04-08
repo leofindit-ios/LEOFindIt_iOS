@@ -264,11 +264,12 @@ class DistancePage extends StatelessWidget {
                                               ),
                                               const SizedBox(height: 4),
                                               Text(
-                                                'Distance: ${d.distanceFeet.toStringAsFixed(2)} ft • ${(d.distanceFeet / 3.28084).toStringAsFixed(2)} m',
+                                                'UUID: ...${d.shortUuid}',
                                                 style: TextStyle(
                                                   color: isMarked
                                                       ? Colors.grey
                                                       : Colors.black,
+                                                  fontWeight: FontWeight.w700,
                                                 ),
                                               ),
                                               Text(
@@ -280,7 +281,7 @@ class DistancePage extends StatelessWidget {
                                                 ),
                                               ),
                                               Text(
-                                                'UUID: ${d.displayUuid}',
+                                                'Distance: ${d.distanceFeet.toStringAsFixed(1)} ft',
                                                 style: TextStyle(
                                                   color: isMarked
                                                       ? Colors.grey

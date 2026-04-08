@@ -12,7 +12,7 @@ final class BluetoothManager: NSObject, CBCentralManagerDelegate {
   private let TX_POWER_TILE: Double = -59.0
   private let TX_POWER_APPLE: Double = -61.0
   private let TX_POWER_SAMSUNG: Double = -60.0
-  private let TX_POWER_UNKNOWN: Double = -62.0
+  private let TX_POWER_UNDESIGNATED: Double = -62.0
 
   private let PATH_LOSS_N: Double = 2.2
   private let TRACKER_TTL_MS: Int64 = 30_000
@@ -120,8 +120,11 @@ final class BluetoothManager: NSObject, CBCentralManagerDelegate {
     let rssi = RSSI.intValue
     if rssi == 127 { return }
 
-    let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
+    let kind = classifyKind(advertisementData: advertisementData)
 
+    // if kind == "UNDESIGNATED" { return }
+
+    let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
     states = states.filter { nowMs - $0.value.lastSeenMs <= TRACKER_TTL_MS }
 
     // Extract relevant info used for device classification and reporting
@@ -131,10 +134,8 @@ final class BluetoothManager: NSObject, CBCentralManagerDelegate {
     let serviceUUIDs = (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]) ?? []
     let serviceUuidStrings = serviceUUIDs.map { $0.uuidString.uppercased() }
 
-    let kind = classifyKind(advertisementData: advertisementData)
-
     // UUID-based identity on iOS
-    let signature = "IOS_\(peripheral.identifier.uuidString)"
+    let signature = peripheral.identifier.uuidString
 
     // Update the state for the detected device
     let prev = states[signature]
@@ -161,15 +162,14 @@ final class BluetoothManager: NSObject, CBCentralManagerDelegate {
 
     // Prepare the payload to be sent to the Flutter layer
     let payload: [String: Any] = [
-      "id": "\(kind)_\(signature)",
-      "logicalId": "\(kind)_\(signature)",
+      "id": signature,
+      "logicalId": signature,
       "address": NSNull(),
       "mac": "",
       "kind": kind,
       "rssi": rssi,
       "smoothedRssi": smoothed,
       "distanceFeet": distanceFeet,
-      // "distanceMeters": distanceMeters,
       "firstSeenMs": Int(firstSeen),
       "lastSeenMs": Int(nowMs),
       "sightings": sightings,
@@ -199,7 +199,7 @@ final class BluetoothManager: NSObject, CBCentralManagerDelegate {
     case "SAMSUNG_DEVICE", "SAMSUNG_SMARTTAG":
       txPower = TX_POWER_SAMSUNG
     default:
-      txPower = TX_POWER_UNKNOWN
+      txPower = TX_POWER_UNDESIGNATED
     }
 
     // Distance estimation: distance = 10 ^ ((txPower - rssi) / (10 * n))
@@ -242,38 +242,22 @@ final class BluetoothManager: NSObject, CBCentralManagerDelegate {
   private func classifyKind(advertisementData: [String: Any]) -> String {
     let localName =
       (advertisementData[CBAdvertisementDataLocalNameKey] as? String)?.lowercased() ?? ""
-
-    let isConnectable =
-      (advertisementData[CBAdvertisementDataIsConnectable] as? Bool) ?? false
-
-    let uuids =
-      (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]) ?? []
+    let isConnectable = (advertisementData[CBAdvertisementDataIsConnectable] as? Bool) ?? false
+    let uuids = (advertisementData[CBAdvertisementDataServiceUUIDsKey] as? [CBUUID]) ?? []
     let serviceStrings = uuids.map { $0.uuidString.uppercased() }
+    let manufacturerData = advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data
 
-    let manufacturerData =
-      advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data
-
-    // Local-name checks first
-    if localName.contains("tile") {
-      return "TILE"
-    }
-    if localName.contains("smart tag") || localName.contains("smarttag") {
-      return "SAMSUNG_SMARTTAG"
-    }
-    if localName.contains("galaxy smarttag") {
+    if localName.contains("tile") { return "TILE" }
+    if localName.contains("smart tag") || localName.contains("smarttag")
+      || localName.contains("galaxy smarttag")
+    {
       return "SAMSUNG_SMARTTAG"
     }
 
-    // Manufacturer-data checks
     if let mfg = manufacturerData, let cid = companyId(from: mfg) {
       let rawUpper = mfg.map { String(format: "%02X", $0) }.joined()
 
-      // Tile
-      if cid == 0x0131 {
-        return "TILE"
-      }
-
-      // Samsung
+      if cid == 0x0131 { return "TILE" }
       if cid == 0x0075 {
         if localName.contains("smart") || localName.contains("tag") {
           return "SAMSUNG_SMARTTAG"
@@ -281,7 +265,7 @@ final class BluetoothManager: NSObject, CBCentralManagerDelegate {
         return "SAMSUNG_DEVICE"
       }
 
-      // Apple
+      // CoreBluetooth AirTag Checks
       if cid == 0x004C {
         if rawUpper.hasPrefix("1EFF4C001219") || rawUpper.hasPrefix("1EFF4C000215")
           || rawUpper.hasPrefix("1AFF4C000215")
@@ -292,15 +276,13 @@ final class BluetoothManager: NSObject, CBCentralManagerDelegate {
       }
     }
 
-    // Service UUID checks
-    if serviceStrings.contains(where: { $0.contains("FD44") }) {
-      return "AIRTAG"
-    }
-    if serviceStrings.contains(where: { $0.contains("FEED") || $0.contains("FEE7") }) {
+    if serviceStrings.contains(where: { $0.contains("FD44") }) { return "AIRTAG" }
+    if serviceStrings.contains(where: {
+      $0.contains("FEED") || $0.contains("FEEC") || $0.contains("FEE7")
+    }) {
       return "TILE"
     }
 
-    // Samsung fallback heuristics
     if localName.contains("samsung") {
       if localName.contains("tag") || localName.contains("smart") {
         return "SAMSUNG_SMARTTAG"
@@ -309,12 +291,11 @@ final class BluetoothManager: NSObject, CBCentralManagerDelegate {
     }
 
     if serviceStrings.contains(where: {
-      $0.contains("FD5A") || $0.contains("FD5B") || $0.contains("FDE2")
+      $0.contains("FD59") || $0.contains("FD5A") || $0.contains("FD5B") || $0.contains("FDE2")
     }) {
       return "SAMSUNG_DEVICE"
     }
 
-    // Stronger Apple fallback
     if looksAppleLikeAdvertisement(
       localName: localName,
       isConnectable: isConnectable,
@@ -323,7 +304,8 @@ final class BluetoothManager: NSObject, CBCentralManagerDelegate {
     ) {
       return "APPLE_DEVICE"
     }
-    return "UNKNOWN"
+
+    return "UNDESIGNATED"
   }
 
   // Extract the manufacturer data from the advertisement data and convert it to a hexadecimal string representation
@@ -331,6 +313,6 @@ final class BluetoothManager: NSObject, CBCentralManagerDelegate {
     guard let mfg = advertisementData[CBAdvertisementDataManufacturerDataKey] as? Data else {
       return ""
     }
-    return mfg.map { String(format: "%02x", $0) }.joined()
+    return mfg.map { String(format: "%02X", $0) }.joined()
   }
 }
