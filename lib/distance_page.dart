@@ -5,6 +5,7 @@ import 'models.dart';
 import 'search_page.dart';
 import 'advanced_scanner_view.dart';
 import 'device_marks.dart';
+import 'filters.dart';
 
 // The DistancePage widget displays a list of nearby tracker devices with their estimated distances and RSSI values
 // Also provides buttons to show all detected devices and to start or stop scanning for devices
@@ -70,9 +71,64 @@ class DistancePage extends StatelessWidget {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
           child: Column(
             children: [
+              // MISSION PROFILES
+              ValueListenableBuilder<FiltersState>(
+                valueListenable: FiltersModel.notifier,
+                builder: (context, filters, _) {
+                  final isActive =
+                      filters.maxMainDistanceFt == 10.0 &&
+                      filters.rssiThreshold == -70;
+                  final isPassive =
+                      filters.maxMainDistanceFt == 50.0 &&
+                      filters.rssiThreshold == -90;
+
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('Package Mission'),
+                          selected: isActive,
+                          onSelected: (val) {
+                            if (val) {
+                              FiltersModel.apply(
+                                maxMainDistanceFt: 10.0,
+                                maxAdvancedDistanceFt: 40.0,
+                                minRssi: -100,
+                                filterByRssi: true,
+                                rssiThreshold: -70,
+                                sortMode: SortMode.recent,
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('Hunting Mission'),
+                          selected: isPassive,
+                          onSelected: (val) {
+                            if (val) {
+                              FiltersModel.apply(
+                                maxMainDistanceFt: 50.0,
+                                maxAdvancedDistanceFt: 200.0,
+                                minRssi: -100,
+                                filterByRssi: true,
+                                rssiThreshold: -90,
+                                sortMode: SortMode.recent,
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
               OutlinedButton.icon(
                 icon: const Icon(
                   Icons.search,
@@ -238,13 +294,8 @@ class DistancePage extends StatelessWidget {
                                     padding: const EdgeInsets.all(20),
                                     child: Row(
                                       children: [
-                                        Icon(
-                                          Icons.signal_cellular_alt_rounded,
-                                          size: 46,
-                                          color: isMarked
-                                              ? Colors.grey
-                                              : Colors.blueAccent,
-                                        ),
+                                        // uses the tracker icons
+                                        buildTrackerImage(d, size: 46),
                                         const SizedBox(width: 20),
                                         Expanded(
                                           child: Column(

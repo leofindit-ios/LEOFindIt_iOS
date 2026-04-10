@@ -1,6 +1,6 @@
 {
-    "name": "leofindit_ios",
-    "short_name": "leofindit_ios",
+    "name": "leofindit",
+    "short_name": "leofindit",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

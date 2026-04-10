@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'quick_start_page.dart';
 import 'advanced_search_help_page.dart';
@@ -13,8 +14,14 @@ import 'warrent_info_page.dart';
 class AppDrawer extends StatefulWidget {
   final GlobalKey<State<StatefulWidget>>? filtersTileKey;
   final GlobalKey<State<StatefulWidget>>? reportsTileKey;
+  final VoidCallback? onReplayTutorial;
 
-  const AppDrawer({super.key, this.filtersTileKey, this.reportsTileKey});
+  const AppDrawer({
+    super.key,
+    this.filtersTileKey,
+    this.reportsTileKey,
+    this.onReplayTutorial,
+  });
 
   @override
   State<AppDrawer> createState() => _AppDrawerState();
@@ -48,9 +55,7 @@ class _AppDrawerState extends State<AppDrawer> {
 
     // Brief simulated network delay so the user sees the UI react
     await Future.delayed(const Duration(seconds: 1));
-
     if (!mounted) return;
-
     setState(() {
       _isCheckingForUpdate = false;
     });
@@ -121,8 +126,19 @@ class _AppDrawerState extends State<AppDrawer> {
                   ),
                   ListTile(
                     leading: const Icon(Icons.play_circle),
-                    title: const Text("Quick Start"),
+                    title: const Text("Quick Start Guide"),
                     onTap: () => _open(context, const QuickStartPage()),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.replay),
+                    title: const Text("Replay App Tutorial"),
+                    onTap: () async {
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setBool('seen_quick_start_guide', false);
+                      if (widget.onReplayTutorial != null) {
+                        widget.onReplayTutorial!();
+                      }
+                    },
                   ),
                   ListTile(
                     leading: const Icon(Icons.help_outline),
@@ -177,7 +193,6 @@ class _AppDrawerState extends State<AppDrawer> {
                 ],
               ),
             ),
-
             // --- DYNAMIC VERSION & UPDATE AREA ---
             Padding(
               padding: const EdgeInsets.symmetric(

@@ -19,9 +19,6 @@ class _ReportsPageState extends State<ReportsPage> {
   String? _savedReportId;
   final TextEditingController _feedbackCtrl = TextEditingController();
 
-  // This variable tracks the loading spinner for web submissions
-  bool _isSubmittingWeb = false;
-
   final GlobalKey _reportsAreaKey = GlobalKey();
 
   @override
@@ -79,36 +76,14 @@ class _ReportsPageState extends State<ReportsPage> {
     setState(() {
       _savedReportId = null;
       _feedbackCtrl.clear();
-      _isSubmittingWeb = false;
     });
   }
 
-  // Option 1: Send via Formspree Webhook
-  Future<void> _submitGeneralFeedbackWeb() async {
-    if (_feedbackCtrl.text.trim().isEmpty) return;
-
-    setState(() => _isSubmittingWeb = true);
-    final body = "LeoFindIt Feedback:\n${_feedbackCtrl.text}";
-
-    await ReportsStore.sendAnonymousFeedback(body);
-
-    if (!mounted) return;
-    setState(() {
-      _isSubmittingWeb = false;
-      _feedbackCtrl.clear();
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Feedback securely submitted via Web.')),
-    );
-  }
-
-  // Option 2: Send via SMS
   Future<void> _submitGeneralFeedbackSMS() async {
     if (_feedbackCtrl.text.trim().isEmpty) return;
 
     final body = "LeoFindIt Feedback:\n${_feedbackCtrl.text}";
-    final uri = Uri.parse("sms:?body=${Uri.encodeComponent(body)}");
+    final uri = Uri.parse("sms:9383686348?body=${Uri.encodeComponent(body)}");
 
     try {
       await launchUrl(uri);
@@ -120,9 +95,26 @@ class _ReportsPageState extends State<ReportsPage> {
     setState(() {
       _feedbackCtrl.clear();
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Feedback opened in messaging app.')),
+  }
+
+  Future<void> _submitGeneralFeedbackEmail() async {
+    if (_feedbackCtrl.text.trim().isEmpty) return;
+
+    final body = "LeoFindIt Feedback:\n${_feedbackCtrl.text}";
+    final uri = Uri.parse(
+      "mailto:feedback@leofindit.com?subject=LeoFindIt Feedback&body=${Uri.encodeComponent(body)}",
     );
+
+    try {
+      await launchUrl(uri);
+    } catch (e) {
+      // Ignore if simulator lacks Email
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _feedbackCtrl.clear();
+    });
   }
 
   Future<void> _confirmClearAll() async {
@@ -316,7 +308,7 @@ class _ReportsPageState extends State<ReportsPage> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'I opt in to SMS with LeoFindIt students only regarding the matter in my feedback. I can send STOP anytime to opt out. Web submissions remain anonymous.',
+                'I opt in to SMS with LeoFindIt developers only regarding the matter in my feedback. I can stop anytime to opt out.',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.blueGrey,
@@ -341,24 +333,14 @@ class _ReportsPageState extends State<ReportsPage> {
                     child: SizedBox(
                       height: 54,
                       child: OutlinedButton.icon(
-                        icon: _isSubmittingWeb
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(Icons.cloud_upload),
-                        label: const Text('Send Web'),
+                        icon: const Icon(Icons.email),
+                        label: const Text('Email'),
                         style: OutlinedButton.styleFrom(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onPressed: _isSubmittingWeb
-                            ? null
-                            : _submitGeneralFeedbackWeb,
+                        onPressed: _submitGeneralFeedbackEmail,
                       ),
                     ),
                   ),

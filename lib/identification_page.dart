@@ -5,7 +5,7 @@ import 'models.dart';
 import 'device_marks.dart';
 import 'search_page.dart';
 
-// displays a list of detected tracker devices categorized as Friendly, Nonsuspect, or Suspect
+// displays a list of detected tracker devices categorized as Friendly, undesignated, or Suspect
 class IdentificationPage extends StatelessWidget {
   final List<TrackerDevice> devices;
   final GlobalKey? identifyTabsKey;
@@ -36,7 +36,7 @@ class IdentificationPage extends StatelessWidget {
 
         final suspect = <TrackerDevice>[];
         final friendly = <TrackerDevice>[];
-        final nonsuspect = <TrackerDevice>[];
+        final undesignated = <TrackerDevice>[];
 
         for (final d in qualified) {
           final mark = DeviceMarks.getMark(d.signature);
@@ -44,8 +44,8 @@ class IdentificationPage extends StatelessWidget {
             friendly.add(d);
           } else if (mark == DeviceMark.suspect) {
             suspect.add(d);
-          } else if (mark == DeviceMark.nonsuspect) {
-            nonsuspect.add(d);
+          } else if (mark == DeviceMark.undesignated) {
+            undesignated.add(d);
           }
         }
 
@@ -65,8 +65,8 @@ class IdentificationPage extends StatelessWidget {
                     _list(context, friendly, empty: 'No friendly trackers yet'),
                     _list(
                       context,
-                      nonsuspect,
-                      empty: 'No nonsuspect trackers yet',
+                      undesignated,
+                      empty: 'No undesignated trackers yet',
                     ),
                   ],
                 ),
@@ -215,12 +215,12 @@ class IdentificationPage extends StatelessWidget {
   }
 
   Color _markColor(DeviceMark? mark) {
-    switch (mark ?? DeviceMark.nonsuspect) {
+    switch (mark ?? DeviceMark.undesignated) {
       case DeviceMark.suspect:
         return const Color(0xFFD9534F);
       case DeviceMark.friendly:
         return const Color(0xFF2E7D32);
-      case DeviceMark.nonsuspect:
+      case DeviceMark.undesignated:
         return const Color(0xFF1500FF);
     }
   }
@@ -230,7 +230,7 @@ class _MarkTabs extends StatelessWidget {
   const _MarkTabs();
   static const _suspect = Color(0xFFD9534F);
   static const _friendly = Color(0xFF2E7D32);
-  static const _nonsuspect = Color(0xFF1500FF);
+  static const _undesignated = Color(0xFF1500FF);
 
   @override
   Widget build(BuildContext context) {
@@ -275,7 +275,7 @@ class _MarkTabs extends StatelessWidget {
         tabs: const [
           _TabPill(label: 'Suspect', color: _suspect),
           _TabPill(label: 'Friendly', color: _friendly),
-          _TabPill(label: 'Nonsuspect', color: _nonsuspect),
+          _TabPill(label: 'Undesignated', color: _undesignated),
         ],
       ),
     );

@@ -1,14 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 
-// Helper to create a solid black outline effect
-const List<Shadow> _textOutlines = [
-  Shadow(offset: Offset(-1.5, -1.5), color: Colors.black),
-  Shadow(offset: Offset(1.5, -1.5), color: Colors.black),
-  Shadow(offset: Offset(1.5, 1.5), color: Colors.black),
-  Shadow(offset: Offset(-1.5, 1.5), color: Colors.black),
-];
-
 TargetFocus tutorialTarget({
   required GlobalKey key,
   required String id,
@@ -24,32 +16,64 @@ TargetFocus tutorialTarget({
     contents: [
       TargetContent(
         align: align,
+        customPosition: yOffset == 0
+            ? null
+            : CustomTargetContentPosition(top: yOffset),
         builder: (context, controller) {
           return Padding(
-            padding: EdgeInsets.only(top: yOffset),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    shadows: _textOutlines, // <-- Text Outline
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 12,
+                    offset: Offset(0, 6),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  body,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    shadows: _textOutlines, // <-- Text Outline
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Inter',
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  Text(
+                    body,
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 16,
+                      fontFamily: 'Inter',
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: controller.skip,
+                        child: const Text('Skip'),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: controller.next,
+                        child: const Text('Next'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           );
         },

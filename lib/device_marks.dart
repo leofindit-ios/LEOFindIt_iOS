@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 // Enum representing the mark/status of a device
-enum DeviceMark { suspect, friendly, nonsuspect }
+enum DeviceMark { suspect, friendly, undesignated }
 
 class DeviceMetadata {
   final DeviceMark mark;
@@ -20,7 +20,7 @@ class DeviceMetadata {
   static DeviceMetadata fromJson(Map<String, dynamic> json) => DeviceMetadata(
     DeviceMark.values.firstWhere(
       (e) => e.name == json['mark'],
-      orElse: () => DeviceMark.nonsuspect,
+      orElse: () => DeviceMark.undesignated,
     ),
     json['customName'] as String?,
   );
@@ -74,7 +74,7 @@ class DeviceMarks {
   }
 
   static void setName(String signature, String name) {
-    final existingMark = _marks[signature]?.mark ?? DeviceMark.nonsuspect;
+    final existingMark = _marks[signature]?.mark ?? DeviceMark.undesignated;
     _marks[signature] = DeviceMetadata(
       existingMark,
       name.trim().isEmpty ? null : name.trim(),

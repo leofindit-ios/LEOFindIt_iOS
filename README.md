@@ -1,12 +1,31 @@
-# LeoFindIt_iOS -- Detect Hidden BTLE Tracking Devices
+# LeoFindIt -- Detect Hidden BTLE Tracking Devices
 
 ## Overview
-
-LeoFindIt_iOS is a hybrid mobile application developed using Flutter and native iOS technologies to detect and classify Bluetooth Low Energy (BLE) tracking devices such as:
- - Apple AirTags
+LeoFindIt is a hybrid mobile application developed using Flutter and native Swift/Kotlin to detect and classify Bluetooth Low Energy (BLE) tracking devices such as:
+ - Apple AirTags / Find My Devices
  - Samsung SmartTags
- - Tile trackers
- - Unknown BLE devices
+ - Life360 Tile trackers
+
+Technology is increasingly used to monitor individuals without consent, thus we developed this application to address these real-world concerns related to cyberstalking and unauthorized tracking.
+
+## Architecture
+Flutter UI Layer -> MethodChannel Bridge -> Native OS Bluetooth Layer -> Device Classification & Distance Estimation.
+
+## Required Permissions
+To install and run LeoFindIt, the user must grant the following OS-level permissions:
+**iOS:**
+- `NSBluetoothAlwaysUsageDescription`
+- `NSBluetoothPeripheralUsageDescription`
+- `NSLocationAlwaysAndWhenInUseUsageDescription`
+- `NSLocationWhenInUseUsageDescription`
+
+**Android:**
+- `BLUETOOTH_SCAN`
+- `BLUETOOTH_CONNECT`
+- `ACCESS_FINE_LOCATION`
+- `ACCESS_COARSE_LOCATION`
+- `BLUETOOTH_ADMIN` (Required for older legacy Android models)
+*(Note: Location permissions are required on Android for BLE scan delivery, even though LeoFindIt does not track GPS location).*
 
 Technology is increasingly used to monitor individuals without consent, thus we developed this application to address these real-world concerns related to cyberstalking and unauthorized tracking.
 

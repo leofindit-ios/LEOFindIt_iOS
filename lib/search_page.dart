@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -42,6 +43,7 @@ class _SearchPageState extends State<SearchPage> {
   static const double _deadband = 0.25;
   static const int _directionHoldMs = 400;
 
+  // fix this
   String direction = 'Hold steady';
   IconData arrow = Icons.navigation;
 
@@ -233,129 +235,117 @@ class _SearchPageState extends State<SearchPage> {
 
   void _submitReport(TrackerDevice d) {
     final ctrl = TextEditingController();
-    bool isSubmittingWeb = false;
 
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Suspect Tag Report'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'I opt in to SMS with LeoFindIt students only regarding the matter in my feedback. I can send STOP anytime to opt out. Web submissions remain anonymous.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                    fontStyle: FontStyle.italic,
-                  ),
+      builder: (ctx) => AlertDialog(
+        title: const Text('Suspect Tag Report'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'I opt in to SMS with LeoFindIt students only regarding the matter in my feedback. I can stop anytime to opt out.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                  fontStyle: FontStyle.italic,
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  'Classified Suspect: ${DateTime.now().toString().split('.')[0]}',
-                  style: const TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Classified Suspect: ${DateTime.now().toString().split('.')[0]}',
+                style: const TextStyle(fontSize: 13),
+              ),
+              Text(
+                'UUID: ...${d.shortUuid}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
                 ),
-                Text(
-                  'UUID: ...${d.shortUuid}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                  ),
+              ),
+              Text(
+                'First Scanned: ${DateTime.fromMillisecondsSinceEpoch(d.firstSeenMs).toString().split('.')[0]}',
+                style: const TextStyle(fontSize: 13),
+              ),
+              Text(
+                'Last Scanned: ${DateTime.fromMillisecondsSinceEpoch(d.lastSeenMs).toString().split('.')[0]}',
+                style: const TextStyle(fontSize: 13),
+              ),
+              Text(
+                'Marked Found: ${_timeFound?.toString().split('.')[0] ?? "N/A"}',
+                style: const TextStyle(fontSize: 13),
+              ),
+              Text(
+                'Last Distance: ${d.distanceFeet.toStringAsFixed(1)} ft',
+                style: const TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Suggest: Screen shot this report, photograph the tag where found, and zoom in to photograph the tag serial number.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.blueAccent,
+                  fontWeight: FontWeight.w600,
                 ),
-                Text(
-                  'First Scanned: ${DateTime.fromMillisecondsSinceEpoch(d.firstSeenMs).toString().split('.')[0]}',
-                  style: const TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Please include a sentence stating the crime and resolution and any app feedback below:',
+                style: TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: ctrl,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  hintText: 'Crime, resolution, feedback...',
+                  border: OutlineInputBorder(),
                 ),
-                Text(
-                  'Last Scanned: ${DateTime.fromMillisecondsSinceEpoch(d.lastSeenMs).toString().split('.')[0]}',
-                  style: const TextStyle(fontSize: 13),
-                ),
-                Text(
-                  'Marked Found: ${_timeFound?.toString().split('.')[0] ?? "N/A"}',
-                  style: const TextStyle(fontSize: 13),
-                ),
-                Text(
-                  'Last Distance: ${d.distanceFeet.toStringAsFixed(1)} ft',
-                  style: const TextStyle(fontSize: 13),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Suggest: Screen shot this report, photograph the tag where found, and zoom in to photograph the tag serial number.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.blueAccent,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Please include a sentence stating the crime and resolution and any app feedback below:',
-                  style: TextStyle(fontSize: 12),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: ctrl,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    hintText: 'Crime, resolution, feedback...',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          actionsAlignment: MainAxisAlignment.spaceEvenly,
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: isSubmittingWeb
-                  ? null
-                  : () async {
-                      setDialogState(() => isSubmittingWeb = true);
-                      final payload =
-                          "LeoFindIt Suspect Report:\nUUID: ...${d.shortUuid}\nFirst Scanned: ${DateTime.fromMillisecondsSinceEpoch(d.firstSeenMs)}\nLast Scanned: ${DateTime.fromMillisecondsSinceEpoch(d.lastSeenMs)}\nFound: ${_timeFound}\nLast Distance: ${d.distanceFeet.toStringAsFixed(1)} ft\n\nNotes: ${ctrl.text}";
-                      await ReportsStore.sendAnonymousFeedback(payload);
-                      if (mounted) {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Report securely submitted via Web.'),
-                          ),
-                        );
-                      }
-                    },
-              child: isSubmittingWeb
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Send Web'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final body =
-                    "LeoFindIt Suspect Report:\nUUID: ...${d.shortUuid}\nFirst Scanned: ${DateTime.fromMillisecondsSinceEpoch(d.firstSeenMs)}\nLast Scanned: ${DateTime.fromMillisecondsSinceEpoch(d.lastSeenMs)}\nFound: ${_timeFound}\nLast Distance: ${d.distanceFeet.toStringAsFixed(1)} ft\n\nNotes: ${ctrl.text}";
-                final uri = Uri.parse("sms:?body=${Uri.encodeComponent(body)}");
-                try {
-                  await launchUrl(uri);
-                } catch (e) {
-                  // Ignore failure if emulator doesn't support SMS
-                }
-                if (mounted) {
-                  Navigator.pop(ctx);
-                }
-              },
-              child: const Text('Send SMS'),
-            ),
-          ],
         ),
+        actionsAlignment: MainAxisAlignment.spaceEvenly,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final body =
+                  "LeoFindIt Suspect Report:\nUUID: ...${d.shortUuid}\nFirst Scanned: ${DateTime.fromMillisecondsSinceEpoch(d.firstSeenMs)}\nLast Scanned: ${DateTime.fromMillisecondsSinceEpoch(d.lastSeenMs)}\nFound: ${_timeFound}\nLast Distance: ${d.distanceFeet.toStringAsFixed(1)} ft\n\nNotes: ${ctrl.text}";
+              final uri = Uri.parse(
+                "mailto:feedback@leofindit.com?subject=LeoFindIt Suspect Report&body=${Uri.encodeComponent(body)}",
+              );
+              try {
+                await launchUrl(uri);
+              } catch (e) {
+                // Ignore failure if emulator doesn't support Mail
+              }
+              if (mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Email'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final body =
+                  "LeoFindIt Suspect Report:\nUUID: ...${d.shortUuid}\nFirst Scanned: ${DateTime.fromMillisecondsSinceEpoch(d.firstSeenMs)}\nLast Scanned: ${DateTime.fromMillisecondsSinceEpoch(d.lastSeenMs)}\nFound: ${_timeFound}\nLast Distance: ${d.distanceFeet.toStringAsFixed(1)} ft\n\nNotes: ${ctrl.text}";
+              final uri = Uri.parse(
+                "sms:9383686348?body=${Uri.encodeComponent(body)}",
+              );
+              try {
+                await launchUrl(uri);
+              } catch (e) {
+                // Ignore failure if emulator doesn't support SMS
+              }
+              if (mounted) Navigator.pop(ctx);
+            },
+            child: const Text('SMS'),
+          ),
+        ],
       ),
     );
   }
@@ -520,7 +510,7 @@ class _MarkTabs extends StatelessWidget {
 
   static const Color _friendly = Color(0xFF2E7D32);
   static const Color _suspect = Color(0xFFD9534F);
-  static const Color _nonsuspect = Color(0xFF1500FF);
+  static const Color _undesignated = Color(0xFF1500FF);
 
   @override
   Widget build(BuildContext context) {
@@ -553,10 +543,10 @@ class _MarkTabs extends StatelessWidget {
           ),
           Expanded(
             child: _Pill(
-              label: 'Nonsuspect',
-              color: _nonsuspect,
-              selected: selected == DeviceMark.nonsuspect,
-              onTap: () => onSelect(DeviceMark.nonsuspect),
+              label: 'Undesignated',
+              color: _undesignated,
+              selected: selected == DeviceMark.undesignated,
+              onTap: () => onSelect(DeviceMark.undesignated),
             ),
           ),
         ],

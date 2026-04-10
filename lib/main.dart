@@ -522,13 +522,15 @@ class _LeoFindItState extends State<LeoFindIt> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final trackedDevices = devices
-      .where((d) => 
-        d.isLikelyAirTag || 
-        d.isLikelyTile || 
-        d.isLikelySamsung ||
-        // d.isPossibleAirTag || 
-        d.kind.contains('APPLE'))
-      .toList();
+        .where(
+          (d) =>
+              d.isLikelyAirTag ||
+              d.isLikelyTile ||
+              d.isLikelySamsung ||
+              // d.isPossibleAirTag ||
+              d.kind.contains('APPLE'),
+        )
+        .toList();
 
     final tutorialTrackedDevices = _tutorialRunning
         ? <TrackerDevice>[_demoTutorialDevice]
@@ -596,6 +598,10 @@ class _LeoFindItState extends State<LeoFindIt> with TickerProviderStateMixin {
                   drawer: AppDrawer(
                     filtersTileKey: _drawerFiltersKey,
                     reportsTileKey: _drawerReportsKey,
+                    onReplayTutorial: () {
+                      Navigator.pop(context); // close drawer
+                      _startQuickGuide();
+                    },
                   ),
                   appBar: AppBar(
                     leading: IconButton(

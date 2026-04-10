@@ -1,5 +1,5 @@
 // ---------------------------
-// leofindit_ios/ios/Runner/AppDelegate.swift
+// leofindit/ios/Runner/AppDelegate.swift
 // ---------------------------
 
 import Flutter

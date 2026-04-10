@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:http/http.dart' as http;
 
 import 'device_marks.dart';
 import 'models.dart';
@@ -111,38 +110,6 @@ class ReportsStore {
   static const MethodChannel _storage = MethodChannel("leo_find_it/storage");
   static final ValueNotifier<List<TrackerReport>> notifier =
       ValueNotifier<List<TrackerReport>>([]);
-  static const String _formspreeUrl = "https://formspree.io/f/mykbzaoe";
-
-  static Future<void> sendAnonymousFeedback(String feedbackText) async {
-    if (feedbackText.trim().isEmpty) return;
-
-    final now = DateTime.now();
-    int hour = now.hour;
-    final ampm = hour >= 12 ? 'PM' : 'AM';
-    if (hour > 12) hour -= 12;
-    if (hour == 0) hour = 12;
-    final min = now.minute.toString().padLeft(2, '0');
-    final estTime = "${now.month}/${now.day}/${now.year} $hour:$min $ampm";
-
-    try {
-      final uri = Uri.parse(_formspreeUrl);
-      final payload = {
-        "Feedback": feedbackText,
-        "Timestamp (EST)": estTime,
-        "App Version": "1.1.0+1",
-      };
-      await http.post(
-        uri,
-        headers: {
-          "Accept": "application/json",
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode(payload),
-      );
-    } catch (e) {
-      debugPrint("Error transmitting feedback: $e");
-    }
-  }
 
   static Future<void> init() async {
     try {
@@ -215,11 +182,6 @@ class ReportsStore {
     }).toList();
     notifier.value = updated;
     await _persist();
-    _transmitFeedback(feedback);
-  }
-
-  static Future<void> _transmitFeedback(String feedbackText) async {
-    sendAnonymousFeedback(feedbackText);
   }
 
   static String _safeTimestamp(DateTime t) {
@@ -253,7 +215,7 @@ class ReportsStore {
     final markLabel = switch (mark) {
       DeviceMark.suspect => "Suspect",
       DeviceMark.friendly => "Friendly",
-      DeviceMark.nonsuspect => "Nonsuspect",
+      DeviceMark.undesignated => "Undesignated",
       null => "Unmarked",
     };
 

@@ -1,4 +1,5 @@
 // Model for representing detected tracker devices and their properties
+import 'package:flutter/material.dart';
 import 'device_marks.dart';
 
 class TrackerDevice {
@@ -82,7 +83,7 @@ class TrackerDevice {
         notObviousAppleHost;
   }
   */
-  
+
   bool get isFound => distanceFeet <= 0.10;
 
   String get displayName {
@@ -94,7 +95,8 @@ class TrackerDevice {
     if (isLikelyAirTag) return 'Apple AirTag';
     if (isLikelyTile) return 'Life360 Tile';
     if (isLikelySamsung) return 'Samsung SmartTag';
-    if (kind.contains('APPLE')) return 'Apple Find My'; // || isPossibleAirTag) return 'Apple Find My';
+    if (kind.contains('APPLE'))
+      return 'Apple Find My'; // || isPossibleAirTag) return 'Apple Find My';
 
     return 'Undesignated Tracker';
   }
@@ -148,4 +150,33 @@ class TrackerDevice {
       serviceUuids: ((m['serviceUuids'] as List?) ?? []).cast<String>(),
     );
   }
+}
+
+// Tracker icons
+Widget buildTrackerImage(TrackerDevice d, {double size = 44}) {
+  String assetName = 'assets/unknown.png';
+  if (d.isLikelyAirTag) {
+    assetName = 'assets/airtag.png';
+  } else if (d.isLikelyTile) {
+    assetName = 'assets/tile.png';
+  } else if (d.isLikelySamsung) {
+    assetName = 'assets/smarttag.png';
+  } else if (d.kind.contains('APPLE')){ // || d.isPossibleAirTag) {
+    assetName = 'assets/airtag.png';
+  }
+
+  return Image.asset(
+    assetName,
+    width: size,
+    height: size,
+    fit: BoxFit.contain,
+    errorBuilder: (context, error, stackTrace) {
+      // Fallback if the team hasn't added the images to the /assets folder yet
+      return Icon(
+        Icons.bluetooth_searching,
+        size: size,
+        color: Colors.blueAccent,
+      );
+    },
+  );
 }

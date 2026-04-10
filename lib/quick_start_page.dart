@@ -88,7 +88,7 @@ class QuickStartPage extends StatelessWidget {
           _step(
             7,
             'Tap a device for more details',
-            'Open a device entry to inspect it further and decide whether it should be treated as nonsuspect, friendly, or suspect.',
+            'Open a device entry to inspect it further and decide whether it should be treated as undesignated, friendly, or suspect.',
           ),
           _step(
             8,

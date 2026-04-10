@@ -1,5 +1,5 @@
 // ---------------------------
-// leofindit_ios/ios/Runner/BluetoothManager.swift
+// leofindit/ios/Runner/BluetoothManager.swift
 // ---------------------------
 
 import CoreBluetooth
