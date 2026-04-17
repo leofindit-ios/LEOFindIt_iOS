@@ -135,9 +135,6 @@ class DeviceMarks {
     _save();
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // Hidden / Dismissed Undesignated support (used by HiddenTagsPage)
-  // ─────────────────────────────────────────────────────────────
   static Set<String> get dismissedUndesignatedKeys =>
       Set<String>.from(_dismissedUndesignated);
 
